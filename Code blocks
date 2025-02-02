@@ -1,0 +1,116 @@
+#Disease Detection System
+pip install tensorflow keras matplotlib numpy opencv-python
+import os
+import numpy as np
+import matplotlib.pyplot as plt
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.callbacks import EarlyStopping
+# Set up the image data generator for training and validation sets
+train_datagen = ImageDataGenerator(
+    rescale=1./255,
+    shear_range=0.2,
+    zoom_range=0.2,
+    horizontal_flip=True)
+
+test_datagen = ImageDataGenerator(rescale=1./255)
+
+# Load the images from directories
+train_data = train_datagen.flow_from_directory(
+    'dataset/train',  # Path to your training set directory
+    target_size=(64, 64),
+    batch_size=32,
+    class_mode='binary')  # Use 'categorical' if you have more than two classes
+
+test_data = test_datagen.flow_from_directory(
+    'dataset/test',  # Path to your test set directory
+    target_size=(64, 64),
+    batch_size=32,
+    class_mode='binary')
+# Initialize the CNN model
+model = Sequential()
+
+# Add convolutional layers
+model.add(Conv2D(32, (3, 3), activation='relu', input_shape=(64, 64, 3)))
+model.add(MaxPooling2D(pool_size=(2, 2)))
+
+model.add(Conv2D(64, (3, 3), activation='relu'))
+model.add(MaxPooling2D(pool_size=(2, 2)))
+
+model.add(Conv2D(128, (3, 3), activation='relu'))
+model.add(MaxPooling2D(pool_size=(2, 2)))
+
+# Flatten the output and add dense layers
+model.add(Flatten())
+model.add(Dense(128, activation='relu'))
+model.add(Dense(1, activation='sigmoid'))  # Use softmax for multi-class classification
+
+# Compile the model
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+# Set early stopping to prevent overfitting
+early_stop = EarlyStopping(monitor='val_loss', patience=5)
+
+# Train the model
+history = model.fit(
+    train_data,
+    epochs=25,
+    validation_data=test_data,
+    callbacks=[early_stop])
+# Evaluate the model performance
+loss, accuracy = model.evaluate(test_data)
+print(f"Test accuracy: {accuracy*100:.2f}%")
+# Plot the accuracy and loss graphs
+plt.figure(figsize=(12, 4))
+
+# Accuracy plot
+plt.subplot(1, 2, 1)
+plt.plot(history.history['accuracy'], label='Training Accuracy')
+plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
+plt.title('Accuracy over epochs')
+plt.legend()
+
+# Loss plot
+plt.subplot(1, 2, 2)
+plt.plot(history.history['loss'], label='Training Loss')
+plt.plot(history.history['val_loss'], label='Validation Loss')
+plt.title('Loss over epochs')
+plt.legend()
+
+plt.show()
+# Evaluate the model performance
+loss, accuracy = model.evaluate(test_data)
+print(f"Test accuracy: {accuracy*100:.2f}%")
+# Plot the accuracy and loss graphs
+plt.figure(figsize=(12, 4))
+
+# Accuracy plot
+plt.subplot(1, 2, 1)
+plt.plot(history.history['accuracy'], label='Training Accuracy')
+plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
+plt.title('Accuracy over epochs')
+plt.legend()
+
+# Loss plot
+plt.subplot(1, 2, 2)
+plt.plot(history.history['loss'], label='Training Loss')
+plt.plot(history.history['val_loss'], label='Validation Loss')
+plt.title('Loss over epochs')
+plt.legend()
+
+plt.show()
+# To predict on a new image
+from tensorflow.keras.preprocessing import image
+
+# Load and preprocess the image you want to predict
+img = image.load_img('path_to_new_image.jpg', target_size=(64, 64))
+img_array = image.img_to_array(img) / 255.0  # Rescale
+img_array = np.expand_dims(img_array, axis=0)  # Add batch dimension
+
+# Predict the class
+prediction = model.predict(img_array)
+if prediction < 0.5:
+    print("The plant is healthy.")
+else:
+    print("The plant is diseased.")
