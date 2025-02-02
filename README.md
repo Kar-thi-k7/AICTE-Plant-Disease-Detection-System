@@ -1,0 +1,1 @@
+# AICTE-Plant-Disease-Detection-System
